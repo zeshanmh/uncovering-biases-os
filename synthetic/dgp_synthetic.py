@@ -8,6 +8,7 @@ Version: 1.0
 
 """
 from biases_synthetic import apply_bias_wrapper
+from estimator_synthetic import rs_estimator_cate
 
 import logging
 import sys
@@ -71,7 +72,7 @@ def generate_observational_data(X, outcome_surface='linear', beta_X=0.5, beta_A=
     # 2. Assign Intervention A based on X (Propensity Score)
     # Define propensity score using logistic function
     # For example, higher X increases likelihood of receiving treatment
-    linear_propensity = 0.5 * X  # Modify as needed for different scenarios
+    linear_propensity = 2.5* X  # Modify as needed for different scenarios
     propensity = 1 / (1 + np.exp(-linear_propensity))
     
     # Assign A based on propensity score
@@ -131,16 +132,18 @@ if __name__ == "__main__":
     logging.info("Starting the script") 
     # Set data parameters
     data_params = { 
-        "n": 5000,
+        "n": 10000,
         "rct_outcome_surface": "cubic",
-        "obs_outcome_surface": "jump",
+        "obs_outcome_surface": "cubic",
         "beta_X": 0.5,
-        "beta_A": 0.7,
+        "beta_A": 10.0,
         "sigma": 1.0,         
         "bias_dict": { 
             "type": "selection_bias",
             "params": { 
-                "selection_dependence": "Y"
+                "selection_dependence": "berksons",
+                "beta_S_A": 10.,
+                "beta_S_Y": 10.
             }
         }
     }
@@ -151,9 +154,15 @@ if __name__ == "__main__":
         data_obs = apply_bias_wrapper(data_obs, data_params["bias_dict"])
         # Save data in the current directory
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        data_rct.to_csv(os.path.join(current_dir, "data_rct.csv"), index=False)
-        data_obs.to_csv(os.path.join(current_dir, "data_obs.csv"), index=False)
+        data_rct.to_csv(os.path.join(current_dir, "data/data_rct_biased.csv"), index=False)
+        data_obs.to_csv(os.path.join(current_dir, "data/data_obs_biased.csv"), index=False)
         logging.info("Data saved successfully in the current directory")
+        # Calculate CATE over values of X 
+        cate_obs = rs_estimator_cate(data_obs)
+        # save cate_obs 
+        pd.DataFrame(np.concatenate([data_obs["X"].values[:, np.newaxis], cate_obs[:, np.newaxis]], axis=1), 
+                     columns=["X", "CATE"]).to_csv(os.path.join(current_dir, "data/cate_obs_biased.csv"), index=False)
+        logging.info("CATE saved successfully in the current directory")
     except Exception as e:
         logging.error(f"An error occurred: {e}", exc_info=True)
         sys.exit(1)

@@ -66,7 +66,8 @@ def main():
             values = [r[f"X1_{x1_val}"][signal] for r in all_results]
             mean = np.mean(values)
             std = np.std(values)
-            print(f"{signal.capitalize()} covariance: {mean:.4f} ± {std:.4f}")
+            ci = 1.96 * std / np.sqrt(len(values))  # 95% confidence interval
+            print(f"{signal.capitalize()} covariance: {mean:.4f} ± {ci:.4f}")
 
 if __name__ == "__main__":
     main()

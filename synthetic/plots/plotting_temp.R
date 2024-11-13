@@ -44,6 +44,55 @@ scale_colour_Publication <- function(...){
   discrete_scale("colour","Publication",manual_pal(values = c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")), ...)
 }
 
+## unbiased results
+# Results for X1 = -1:
+# Outcome covariance: 0.0006 ± 0.0009
+# Treatment covariance: 0.0059 ± 0.0055
+# Selection covariance: 0.0000 ± 0.0000
+
+# Results for X1 = 1:
+# Outcome covariance: 0.0001 ± 0.0001
+# Treatment covariance: 0.0014 ± 0.0003
+# Selection covariance: -0.0000 ± 0.0000
+
+# Results for X1 = all:
+# Outcome covariance: 0.0012 ± 0.0002
+# Treatment covariance: 0.0011 ± 0.0011
+# Selection covariance: 0.1246 ± 0.0029
+
+## selection type 1/2 results
+# Results for X1 = -1:
+# Outcome covariance: -0.0000 ± 0.0005
+# Treatment covariance: 0.0000 ± 0.0000
+# Selection covariance: 0.0000 ± 0.0000
+
+# Results for X1 = 1:
+# Outcome covariance: 0.0013 ± 0.0003
+# Treatment covariance: 0.0608 ± 0.0067
+# Selection covariance: -0.0000 ± 0.0000
+
+# Results for X1 = all:
+# Outcome covariance: 0.0022 ± 0.0003
+# Treatment covariance: 0.0762 ± 0.0061
+# Selection covariance: 0.1093 ± 0.0036
+
+## selection type 3 results
+# Results for X1 = -1:
+# Outcome covariance: 0.0006 ± 0.0009
+# Treatment covariance: 0.0059 ± 0.0055
+# Selection covariance: 0.0000 ± 0.0000
+
+# Results for X1 = 1:
+# Outcome covariance: 1.2067 ± 0.0594
+# Treatment covariance: -0.0092 ± 0.0016
+# Selection covariance: 0.0000 ± 0.0000
+
+# Results for X1 = all:
+# Outcome covariance: 0.7791 ± 0.0421
+# Treatment covariance: -0.0085 ± 0.0018
+# Selection covariance: 0.1767 ± 0.0030
+
+
 # Create a data frame with all results
 data <- data.frame(
   bias_setup = rep(c("Unbiased", "Selection Type 2", "Selection Type 3"), each = 9),
@@ -51,31 +100,31 @@ data <- data.frame(
   signal = rep(c("Outcome", "Treatment", "Selection"), 9),
   mean = c(
     # Unbiased
-    1.6594, 0.5227, 0.1711,  # All
-    1.6251, 0.4832, 0.0000,  # X1 = 1
-    2.8528, 0.8884, 0.0000,  # X1 = -1
+    0.0012, 0.0011, 0.1246,  # All
+    0.0001, 0.0014, -0.0000, # X1 = 1
+    0.0006, 0.0059, 0.0000,  # X1 = -1
     # Selection Type 1/2
-    1.1166, 0.6350, -0.0302, # All
-    1.7641, 0.6398, 0.0000,  # X1 = 1
-    1.6929, 0.6285, 0.0000,  # X1 = -1
+    0.0022, 0.0762, 0.1093,  # All
+    0.0013, 0.0608, -0.0000, # X1 = 1
+    -0.0000, 0.0000, 0.0000, # X1 = -1
     # Selection Type 3
-    2.5998, 0.6195, 0.2197,  # All
-    2.9156, 0.5675, 0.0000,  # X1 = 1
-    2.8528, 0.8884, 0.0000   # X1 = -1
+    0.7791, -0.0085, 0.1767, # All
+    1.2067, -0.0092, 0.0000, # X1 = 1
+    0.0006, 0.0059, 0.0000   # X1 = -1
   ),
   ci = c(
     # Unbiased
-    0.0502, 0.0070, 0.0062,  # All
-    0.0545, 0.0060, 0.0000,  # X1 = 1
-    0.2858, 0.0467, 0.0000,  # X1 = -1
+    0.0002, 0.0011, 0.0029,  # All
+    0.0001, 0.0003, 0.0000,  # X1 = 1
+    0.0009, 0.0055, 0.0000,  # X1 = -1
     # Selection Type 1/2
-    0.0542, 0.0071, 0.0017,  # All
-    0.0818, 0.0103, 0.0000,  # X1 = 1
-    0.0758, 0.0123, 0.0000,  # X1 = -1
+    0.0003, 0.0061, 0.0036,  # All
+    0.0003, 0.0067, 0.0000,  # X1 = 1
+    0.0005, 0.0000, 0.0000,  # X1 = -1
     # Selection Type 3
-    0.0612, 0.0112, 0.0067,  # All
-    0.0601, 0.0098, 0.0000,  # X1 = 1
-    0.2858, 0.0467, 0.0000   # X1 = -1
+    0.0421, 0.0018, 0.0030,  # All
+    0.0594, 0.0016, 0.0000,  # X1 = 1
+    0.0009, 0.0055, 0.0000   # X1 = -1
   )
 )
 
@@ -83,13 +132,16 @@ data <- data.frame(
 data$ci_lower <- data$mean - data$ci
 data$ci_upper <- data$mean + data$ci
 
+# Make signal a factor with specific order
+data$signal <- factor(data$signal, levels = c("Treatment", "Outcome", "Selection"))
+
 # Create the plot with modified aesthetics
 p <- ggplot(data, aes(x = signal, y = mean, fill = bias_setup)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7) +
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper),
                 position = position_dodge(width = 0.8),
                 width = 0.25) +
-  facet_wrap(~X1, scales = "free_y", labeller=label_parsed) +
+  facet_wrap(~X1, labeller=label_parsed) +
   labs(x = "Covariance Signal Type",
        y = "Covariance",
        fill = "Bias Setup") +

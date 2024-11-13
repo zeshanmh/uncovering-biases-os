@@ -73,9 +73,9 @@ class BaseUnbiasedSetup:
     
     def _generate_outcome(self, row):
         if row["A"] == 0:
-            return row["X1"] + np.random.normal(0, 1)
+            return row["X1"] + np.random.normal(0, 0.1)
         else:
-            return 2 + row["X1"] + np.random.normal(0, 1)
+            return 2 + row["X1"] + np.random.normal(0, 0.1)
             
     def fit_models(self, df_rct, df_obs, models={"outcome": "DTR", 
                                                  "selection": "DTC", 
@@ -136,7 +136,7 @@ class SelectionBiasType1or2(BaseUnbiasedSetup):
     def _generate_obs_selection(self, row):
         # need to change this to depend on A and Y
         if row["A"] == 0: 
-            return np.random.binomial(1, 0.5)
+            return np.random.binomial(1, 0.1)
         else: 
             pXY = 1 / (1 + np.exp(-row["Y"]))
             if row["X1"] == 1: 
@@ -158,9 +158,9 @@ class SelectionBiasType3(BaseUnbiasedSetup):
             
     def _generate_outcome(self, row):
         if row["A"] == 0:
-            return row["X1"] + np.random.normal(0, 1)
+            return row["X1"] + np.random.normal(0, 0.1)
         else:
             if row["X1"] == -1:
-                return 2 + row["X1"] + np.random.normal(0, 1)
+                return 2 + row["X1"] + np.random.normal(0, 0.1)
             else:
                 return 2 + row["X1"] + row["U1"] + np.random.normal(0, 1)

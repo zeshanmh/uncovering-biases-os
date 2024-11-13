@@ -3,9 +3,9 @@ import numpy as np
 from bias_generation import BaseUnbiasedSetup, SelectionBiasType1or2, SelectionBiasType3
 from estimator import CovarianceEstimator, PsiEstimator
 
-def run_single_experiment(bias_setup, seed):
+def run_single_experiment(bias_setup, seed, n_rct, n_obs):
     # Set up the experiment
-    setup = bias_setup(random_seed=seed)
+    setup = bias_setup(n_rct=n_rct, n_obs=n_obs, random_seed=seed)
     
     # Generate data
     df_rct, df_obs = setup.generate_data()
@@ -38,6 +38,10 @@ def main():
                       required=True, help='Type of bias setup to use')
     parser.add_argument('--n_runs', type=int, default=10,
                       help='Number of experimental runs')
+    parser.add_argument('--n_rct', type=int, default=1000,
+                      help='RCT sample size')
+    parser.add_argument('--n_obs', type=int, default=10000,
+                      help='OBS sample size')
     parser.add_argument('--seed', type=int, default=42,
                       help='Base random seed')
     args = parser.parse_args()
@@ -54,7 +58,7 @@ def main():
     all_results = []
     for i in range(args.n_runs):
         seed = args.seed + i
-        results = run_single_experiment(bias_setup, seed)
+        results = run_single_experiment(bias_setup, seed, args.n_rct, args.n_obs)
         all_results.append(results)
         print(f"Completed run {i+1}/{args.n_runs}")
         

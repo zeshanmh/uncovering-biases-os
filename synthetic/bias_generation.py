@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 
+
 class BaseUnbiasedSetup:
     def __init__(self, n_rct=1000, n_obs=10000, n_covs=1, n_unmeasured_covs=1, random_seed=42):
         self.n_rct = n_rct
@@ -14,10 +15,11 @@ class BaseUnbiasedSetup:
         self.covs = [f'X{i+1}' for i in range(n_covs)]
         self.unmeasured_covs = [f'U{i+1}' for i in range(n_unmeasured_covs)]
         
+
     def generate_data(self):
         # Generate RCT data
-        X_rct = np.random.choice([-1, 1], size=(self.n_rct, self.n_covs))
-        U_rct = np.random.choice([-1, 1], size=(self.n_rct, self.n_unmeasured_covs))
+        X_rct = np.random.choice([-1, 1], size=(self.n_rct, self.n_covs), p=[0.5, 0.5])
+        U_rct = np.random.choice([-1, 1], size=(self.n_rct, self.n_unmeasured_covs), p=[0.5, 0.5])
         
         df_rct = pd.DataFrame({
             **{cov: X_rct[:,i] for i, cov in enumerate(self.covs)},
@@ -26,8 +28,8 @@ class BaseUnbiasedSetup:
         })
         
         # Generate observational data
-        X_obs = np.random.choice([-1, 1], size=(self.n_obs, self.n_covs))
-        U_obs = np.random.choice([-1, 1], size=(self.n_obs, self.n_unmeasured_covs))
+        X_obs = np.random.choice([-1, 1], size=(self.n_obs, self.n_covs), p=[0.5, 0.5])
+        U_obs = np.random.choice([-1, 1], size=(self.n_obs, self.n_unmeasured_covs), p=[0.5, 0.5])
         
         df_obs = pd.DataFrame({
             **{cov: X_obs[:,i] for i, cov in enumerate(self.covs)},
@@ -37,24 +39,27 @@ class BaseUnbiasedSetup:
         
         return df_rct, df_obs
     
+
     def generate_treatment_outcome_selection(self, df, study="RCT"): 
         if study == "RCT":
             fn_tr = self._generate_rct_treatment
             fn_sel = self._generate_rct_selection
         else: 
-            fn_tr = self._generate_obs_treatment
+            fn_tr = self._generate_obs_treatment 
             fn_sel = self._generate_obs_selection
 
-        fn_out = self._generate_outcome 
+        fn_out = self._generate_outcome
 
+        df["S"] = df.apply(fn_sel, axis=1)
         df["A"] = df.apply(fn_tr, axis=1)
         df["Y"] = df.apply(fn_out, axis=1)
-        df["S"] = df.apply(fn_sel, axis=1)
 
         return df
     
+
     def _generate_rct_treatment(self, row):
         return np.random.binomial(1, 0.5)
+
 
     def _generate_obs_treatment(self, row):
         if row["X1"] == -1:
@@ -62,20 +67,24 @@ class BaseUnbiasedSetup:
         else:
             return np.random.binomial(1, 0.9)
     
+
     def _generate_rct_selection(self, row):
         return 1
     
+
     def _generate_obs_selection(self, row): 
         if row["X1"] == -1:
             return np.random.binomial(1, 0.1)
         else: 
             return np.random.binomial(1, 0.9)
     
+
     def _generate_outcome(self, row):
         if row["A"] == 0:
             return row["X1"] + np.random.normal(0, 0.1)
         else:
             return 2 + row["X1"] + np.random.normal(0, 0.1)
+            
             
     def fit_models(self, df_rct, df_obs, models={"outcome": "DTR", 
                                                  "selection": "DTC", 

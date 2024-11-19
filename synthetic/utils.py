@@ -21,6 +21,20 @@ def pearsonr_ci(df, col_x, col_y, alpha=0.05):
     return r, p, lo, hi
 
 
+def spearmanr_ci(df, col_x, col_y, alpha=0.05):
+    '''
+        https://zhiyzuo.github.io/Pearson-Correlation-CI-in-Python/
+    '''
+    
+    df_new = df[[col_x, col_y]].dropna()
+    n = len(df_new) - 3
+
+    res = stats.spearmanr(df_new[col_x], df_new[col_y])
+    r = res.statistic
+    p = res.pvalue
+    return r, p
+
+
 def rbf_kernel(X, sigma=1):
     X = np.atleast_2d(X)
     sq_dists = np.sum(X ** 2, axis=1).reshape(-1, 1) + np.sum(X ** 2, axis=1) - 2 * np.dot(X, X.T)
@@ -31,7 +45,7 @@ def rbf_kernel(X, sigma=1):
 def rbf_kernel_two_matrices(X1, X2, sigma=1.0):
     X1 = np.atleast_2d(X1)
     X2 = np.atleast_2d(X2)
-    
+
     sq_dists = (
         np.sum(X1 ** 2, axis=1).reshape(-1, 1)  
         + np.sum(X2 ** 2, axis=1).reshape(1, -1)  
@@ -52,9 +66,26 @@ def legendre_mat(X, d):
     return matrix
 
 
-def sample_bernoulli(row, covs, coefs=None, p=0.95):
-    if coefs is not None:
-        logit = row[covs] @ coefs[1:] + coefs[0]
-        p = 1 / (1 + np.exp(-logit))
+# def legendre_mat(X, d):
+#     matrix = np.zeros((X.shape[0], d))
+    
+#     for n in range(d):
+#         matrix[:, n] = X ** (n + 1)
+    
+#     return matrix
 
-    return np.random.binomial(1, p)
+
+def sample_cov_matrix(d, temp=100):
+    A = np.random.rand(d, d)
+    symmetric_matrix = A + A.T
+
+    positive_semi_definite_matrix = np.dot(symmetric_matrix, symmetric_matrix.T)
+    D = np.sqrt(np.diag(positive_semi_definite_matrix))
+
+    normalization_matrix = np.outer(D, D)
+    covariance_matrix = positive_semi_definite_matrix / normalization_matrix
+
+    covariance_matrix = covariance_matrix / temp
+
+    np.fill_diagonal(covariance_matrix, 1)
+    return covariance_matrix

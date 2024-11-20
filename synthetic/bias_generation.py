@@ -161,9 +161,9 @@ class SelectionBiasType3(BaseUnbiasedSetup):
             return np.random.binomial(1, 0.1)
         else: 
             if row["U1"] == -1:
-                return np.random.binomial(1, 0.9)
+                return np.random.binomial(1, 0.95)
             else: 
-                return np.random.binomial(1, 0.1)
+                return np.random.binomial(1, 0.05)
             
     def _generate_outcome(self, row):
         if row["A"] == 0:

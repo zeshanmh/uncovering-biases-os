@@ -42,7 +42,7 @@ def rbf_kernel(X, sigma=1):
     return K
 
 
-def rbf_kernel_two_matrices(X1, X2, sigma=1.0):
+def rbf_kernel_two_matrices(X1, X2, sigma=1e-4):
     X1 = np.atleast_2d(X1)
     X2 = np.atleast_2d(X2)
 
@@ -53,6 +53,16 @@ def rbf_kernel_two_matrices(X1, X2, sigma=1.0):
     )
     
     K = np.exp(-sq_dists / (2 * sigma**2))
+    return K
+
+
+def laplace_kernel_two_matrices(X1, X2, sigma=1.0):
+    X1 = np.atleast_2d(X1)
+    X2 = np.atleast_2d(X2)
+
+    l1_dists = np.sum(np.abs(X1[:, np.newaxis, :] - X2[np.newaxis, :, :]), axis=2)
+    K = np.exp(-l1_dists / sigma)
+    
     return K
 
 

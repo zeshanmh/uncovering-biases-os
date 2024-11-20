@@ -5,6 +5,8 @@ import pandas as pd
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+
 
 from numpy.random import uniform as unif
 
@@ -13,7 +15,7 @@ def sample_bernoulli(row, covs, coefs=None, p=0.95):
     if coefs is not None:
         logit = row[covs] @ coefs[1:] + coefs[0]
         p = 1 / (1 + np.exp(-logit))
-        # p = max(min(p, 0.95), 0.05)
+        # p = max(min(p, 0.9), 0.1)
 
     return np.random.binomial(1, p)
 
@@ -74,7 +76,8 @@ def psi_R(row, R):
         p_r = R * p_r1 + (1 - R) * (1 - p_r1)
 
         return (term_1 + term_2 - term_3) / (p_r * p_s1)
-    
+        # return term_1 / (p_r * p_s1)
+
 
 def calc_psi(df):
     df["psi0"] = df.apply(lambda row: psi_R(row, 0), axis=1)
@@ -82,19 +85,36 @@ def calc_psi(df):
     df["psi"] = df["psi1"] - df["psi0"]
 
 
-def merge_df(df_rct, df_obs, covs, pr_model=None, pr_model_name="LogReg", log_psi=True):
+def merge_df_train(df_rct, df_obs, covs, pr_model_name="LogReg"):
     df = pd.concat([df_rct, df_obs]).reset_index(drop=True)
-
-    if pr_model is None:
-        pr_model = fit_model(df, covs, "R", model_name=pr_model_name)
+    pr_model = fit_model(df, covs, "R", model_name=pr_model_name)
 
     df["hat_P(R=1)"] = pr_model.predict_proba(df[covs])[:,-1]
     df["SE_R"] = (df["R"] - df[f"hat_P(R=1)"]) ** 2
 
-    if log_psi:
-        calc_psi(df)
+    calc_psi(df)
 
     return df, pr_model
+
+
+def merge_df_val(df_rct, df_obs, covs, pr_model, rct_models, obs_models, df_merged_train):
+    # df = pd.concat([df_rct, df_obs]).reset_index(drop=True)
+    df = df_obs.copy()
+
+    df["hat_P(R=1)"] = pr_model.predict_proba(df[covs])[:,-1]
+    df["SE_R"] = (df["R"] - df[f"hat_P(R=1)"]) ** 2
+
+    df["mu_0_rct"] = rct_models["Y0"].predict_proba(df[covs])[:,-1]
+    df["mu_1_rct"] = rct_models["Y1"].predict_proba(df[covs])[:,-1]
+    df["mu_0_obs"] = obs_models["Y0"].predict_proba(df[covs])[:,-1]
+    df["mu_1_obs"] = obs_models["Y1"].predict_proba(df[covs])[:,-1]
+    df["w1(X)"] = (df["mu_1_rct"] - df["mu_0_rct"]) - (df["mu_1_obs"] - df["mu_0_obs"])
+    df["SE_Y"] = df['SE_Y0'].combine_first(df['SE_Y1'])
+
+    K = laplace_kernel_two_matrices(df[covs], df_merged_train[covs])
+    df['w2(X)'] = K @ df_merged_train['psi'] / len(df_merged_train['psi'])
+
+    return df
 
 
 def init_df(n, d, r, px_dist=None, mean=None, cov=None):

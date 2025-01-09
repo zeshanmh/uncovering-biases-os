@@ -2,22 +2,21 @@ from utils import *
 
 import numpy as np
 import pandas as pd
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-from sklearn.linear_model import LinearRegression, LogisticRegression, LogisticRegressionCV
-from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import train_test_split
 
-import xgboost as xgb
-from xgboost import XGBClassifier
 
 from numpy.random import uniform as unif
+
+
+class DataModule():
+    def __init__(self, ...):
+        w
 
 
 def sample_bernoulli(row, covs, coefs=None, p=0.95):
     if coefs is not None:
         logit = row[covs] @ coefs[1:] + coefs[0]
         p = 1 / (1 + np.exp(-logit))
-        p = max(min(p, 0.9), 0.1)
+        # p = max(min(p, 0.9), 0.1)
 
     return np.random.binomial(1, p)
 
@@ -33,7 +32,7 @@ def sample_TOS(df, covs, coefs, probs):
 def fit_model(df, covs, target, filter_fit='index==index', model_name='LogReg'):
     if model_name == "LogReg":
         # model = XGBClassifier(
-        #     n_estimators=10,  
+        #     n_estimators=5,  
         #     max_depth=3,     
         # )
 
@@ -101,14 +100,12 @@ def merge_df_train(df_rct, df_obs, covs, pr_model_name="LogReg"):
 
     calc_psi(df)
 
-    K = rbf_kernel_two_matrices(df[covs], df[covs])
-
-    return df, pr_model, K
+    return df, pr_model
 
 
 def merge_df_val(df_rct, df_obs, covs, pr_model, rct_models, obs_models, df_merged_train):
     df = pd.concat([df_rct, df_obs]).reset_index(drop=True)
-    df = df_obs.copy()
+    # df = df_obs.copy()
 
     df["hat_P(R=1)"] = pr_model.predict_proba(df[covs])[:,-1]
     df["SE_R"] = (df["R"] - df[f"hat_P(R=1)"]) ** 2
@@ -119,9 +116,8 @@ def merge_df_val(df_rct, df_obs, covs, pr_model, rct_models, obs_models, df_merg
     df["mu_1_obs"] = obs_models["Y1"].predict_proba(df[covs])[:,-1]
     df["w1(X)"] = (df["mu_1_rct"] - df["mu_0_rct"]) - (df["mu_1_obs"] - df["mu_0_obs"])
 
-    K = rbf_kernel_two_matrices(df[covs], df_merged_train[covs])
+    K = laplace_kernel_two_matrices(df[covs], df_merged_train[covs])
     df['w2(X)'] = K @ df_merged_train['psi'] / len(df_merged_train['psi'])
-    df['w2(X)'] = df['w2(X)'] / np.trapz(df['w2(X)'], df["X1"])
 
     return df
 
@@ -129,7 +125,7 @@ def merge_df_val(df_rct, df_obs, covs, pr_model, rct_models, obs_models, df_merg
 def init_df(n, d, r, px_dist=None, mean=None, cov=None):
     if px_dist == "mvn":
         vector = np.random.multivariate_normal(mean, cov, size=n)
-        # vector = np.clip(vector, -1, 1)
+        vector = np.clip(vector, -1, 1)
         X_rct = vector[:,0]
         U_rct = vector[:,1]    
     else:

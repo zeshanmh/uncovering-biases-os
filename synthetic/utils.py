@@ -42,7 +42,7 @@ def rbf_kernel(X, sigma=1):
     return K
 
 
-def rbf_kernel_two_matrices(X1, X2, sigma=1e-4):
+def rbf_kernel_two_matrices(X1, X2, sigma=1.0):
     X1 = np.atleast_2d(X1)
     X2 = np.atleast_2d(X2)
 
@@ -76,15 +76,6 @@ def legendre_mat(X, d):
     return matrix
 
 
-# def legendre_mat(X, d):
-#     matrix = np.zeros((X.shape[0], d))
-    
-#     for n in range(d):
-#         matrix[:, n] = X ** (n + 1)
-    
-#     return matrix
-
-
 def sample_cov_matrix(d, temp=100):
     A = np.random.rand(d, d)
     symmetric_matrix = A + A.T
@@ -99,3 +90,21 @@ def sample_cov_matrix(d, temp=100):
 
     np.fill_diagonal(covariance_matrix, 1)
     return covariance_matrix
+
+
+def mmr_test(df, Kxx, B=100):
+    
+    n = len(df)
+    np.fill_diagonal(Kxx, 0)
+    psi = np.array(df['psi'])
+
+    mmr_stat = psi @ Kxx @ psi / (n - 1)
+
+    h0_sample = np.zeros(B)
+    for k in range(B):
+        wpsi = psi * (np.random.multinomial(n, [1 / n] * n) - 1) 
+        wprod = wpsi @ Kxx @ wpsi / n
+        h0_sample[k] = wprod
+
+    pval = (np.sum(mmr_stat < h0_sample) + 1) / (len(h0_sample) + 1)
+    return int(pval < 0.05), pval

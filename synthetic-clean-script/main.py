@@ -13,7 +13,7 @@ parser.add_argument('--d', default=6, type=int)
 parser.add_argument('--n_val', default=1000, type=int)
 parser.add_argument('--n_rct', default=20000, type=int)
 parser.add_argument('--n_obs', default=20000, type=int)
-parser.add_argument('--num_trials', default=10, type=int)
+parser.add_argument('--num_trials', default=100, type=int)
 parser.add_argument('--seed', default=99, type=int)
 parser.add_argument('--res_dir', default="dummy_results", type=str)
 parser.add_argument('--bias_S', action="store_true")
@@ -21,12 +21,18 @@ parser.add_argument('--bias_A', action="store_true")
 parser.add_argument('--bias_Y0', action="store_true")
 parser.add_argument('--bias_Y1', action="store_true")
 parser.add_argument('--bias_trs', action="store_true")
+parser.add_argument('--full_adj', action="store_true")
 args = parser.parse_args()
 
 np.random.seed(args.seed)
 
 d = args.d
-d_meas = d - 1
+
+if args.full_adj:
+    d_meas = d
+else:
+    d_meas = d - 1
+
 predictors = [f"Xp{i + 1}" for i in range(2 ** d_meas)]
 
 n_rct, n_rct_val = args.n_rct, args.n_val * 20

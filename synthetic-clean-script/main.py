@@ -13,7 +13,7 @@ parser.add_argument('--d', default=6, type=int)
 parser.add_argument('--n_val', default=1000, type=int)
 parser.add_argument('--n_rct', default=20000, type=int)
 parser.add_argument('--n_obs', default=20000, type=int)
-parser.add_argument('--num_trials', default=2, type=int)
+parser.add_argument('--num_trials', default=10, type=int)
 parser.add_argument('--seed', default=99, type=int)
 parser.add_argument('--res_dir', default="dummy_results", type=str)
 parser.add_argument('--bias_S', action="store_true")
@@ -40,7 +40,7 @@ bias_values = {"Y0": args.bias_Y0, "Y1": args.bias_Y1, "A": args.bias_A, "S": ar
 
 res_keys = ["SE_Y0", "SE_Y1", "SE_A", "SE_S"]
 cov_res = pd.DataFrame(columns=[key + suffix for key in res_keys for suffix in ["_r", "_p"]], 
-                       index=np.arange(args.n_val))
+                       index=np.arange(args.num_trials))
 
 for k in range(args.num_trials):
 

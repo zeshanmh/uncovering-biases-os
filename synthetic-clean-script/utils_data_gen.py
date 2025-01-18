@@ -67,27 +67,26 @@ def sample_all_probs(d, pl_range, ph_range, scenario):
 
 
 def init_df(n, d, d_meas, r, probs, x_probs, trs_bias):
-    covs = [f"X{i + 1}" for i in range(d)]
+    all_covs = [f"X{i + 1}" for i in range(d)]
+    X_covs = [f"X{i + 1}" for i in range(d - 1)]
     meas_covs = [f"X{i + 1}" for i in range(d_meas)]
     
-    X_meas = choice([0, 1], size=(n, d_meas), p=x_probs[f"R={r}"])
+    X = choice([0, 1], size=(n, d - 1), p=x_probs[f"R={r}"])
+    df = pd.DataFrame({**{'R': r}, **{cov: X[:,i] for i, cov in enumerate(X_covs)}})
+
+    if not trs_bias:
+        df[f"X{d}"] = choice([0, 1], size=(n, 1), p=[0.5, 0.5])
+    else:
+        u_prob = sample_probs(d - 1, (0.1, 0.9), (0.1, 0.9), True)
+        df[f"P(X{d}=1)"] = df.apply(lambda row: covs_to_prob(row, X_covs, u_prob), axis=1)
+        df[f"X{d}"] = df.apply(lambda row: binomial(1, row[f"P(X{d}=1)"]), axis=1)
+
+    for key, prob in probs.items():
+        df[f"P({key}=1)"] = df.apply(lambda row: covs_to_prob(row, all_covs, prob), axis=1)
+        df[key] = df.apply(lambda row: binomial(1, row[f"P({key}=1)"]), axis=1)
 
     for i, c in enumerate(list(itertools.product([0, 1], repeat=d_meas))):
         df[f"Xp{i + 1}"] = (df[meas_covs] == c).all(axis=1).astype(int)
-
-    if trs_bias:
-        u_prob = sample_probs(d_meas, (0.2, 0.8), (0.2, 0.8), True)
-        df["P(U=1)"] = df.apply(lambda row: covs_to_prob(row, covs, u_prob), axis=1)
-        df["U"] = df.apply(lambda row: binomial(1, row["P(U=1)"]), axis=1)
-    else:
-        U = choice([0, 1], size=(n,1), p=x_probs[f"R={r}"])
-
-    X = np.concatenate((X_meas, U), axis=1)
-    df = pd.DataFrame({**{'R': r}, **{cov: X[:,i] for i, cov in enumerate(covs)}})
-
-    for key, prob in probs.items():
-        df[f"P({key}=1)"] = df.apply(lambda row: covs_to_prob(row, covs, prob), axis=1)
-        df[key] = df.apply(lambda row: binomial(1, row[f"P({key}=1)"]), axis=1)
 
     df["Y"] = df["A"] * df["Y1"] + (1 - df["A"]) * df["Y0"]   
 

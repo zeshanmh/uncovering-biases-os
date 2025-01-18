@@ -1,0 +1,18 @@
+{
+  "d": [
+    2,
+    3
+  ],
+  "n_val": 100,
+  "n_rct": 2000,
+  "n_obs": 2000,
+  "num_trials": 5,
+  "seed": 99,
+  "bias_S": false,
+  "bias_A": true,
+  "bias_Y0": false,
+  "bias_Y1": true,
+  "bias_trs": false,
+  "full_adj": false,
+  "bias_type": "confounding_bias"
+}

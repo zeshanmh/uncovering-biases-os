@@ -9,13 +9,17 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--d', nargs="+", default=6, type=int)
 parser.add_argument('--bias_type', default="dummy_results", type=str)
+parser.add_argument('--n_val', default=1000, type=int)
+parser.add_argument('--n_rct', default=5000, type=int)
 args = parser.parse_args()
 
 ds = args.d if isinstance(args.d, list) else [args.d]
 target_vars = {"SE_S": "S", "SE_A": "A", "SE_Y1": "Y"}
 
+pval = 0.01
+
 for d in ds:
-    save_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f"/results/{args.bias_type}/d{d}")
+    save_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f"/results_ntrain-{args.n_rct}_nval-{args.n_val}/{args.bias_type}/d{d}")
     df = pd.read_csv(os.path.join(save_dir, 'results.csv')) 
 
     cp = sns.color_palette("tab10")
@@ -26,15 +30,15 @@ for d in ds:
 
     for idx, (key, plot_name) in enumerate(target_vars.items()):
         axs[idx].set_xlabel(rf"$\rho (b1, {plot_name})$", fontsize=16)
-        axs[idx].axhline(y=-np.log10(0.05), color='lightgray', linestyle='--', label='p = 0.05')
-        axs[idx].axvline(x=0, color='lightgray', linestyle='--', label='p = 0.05')
+        axs[idx].axhline(y=-np.log10(pval), color='lightgray', linestyle='--', label=f'p = {pval}')
+        axs[idx].axvline(x=0, color='lightgray', linestyle='--', label=f'p = {pval}')
         
         hat_rho = df[key + "_r"]
         hat_p = df[key + "_p"]
         log_p_val = np.clip(-np.log10(hat_p), a_min=None, a_max=5)
         axs[idx].scatter(hat_rho, log_p_val, color=cp[idx], s=1, alpha=0.5)
 
-        percent = int(100 * len(df.query(f"{key}_r > 0 & {key}_p < 0.05")) / len(df))
+        percent = int(100 * len(df.query(f"{key}_r > 0 & {key}_p < {pval}")) / len(df))
         axs[idx].text(0.6, 0.6, f"%{percent}", fontsize=12, ha='center', va='center', transform=axs[idx].transAxes)
 
         #  for plotting all four figures with the same x and y limits
@@ -52,7 +56,7 @@ for d in ds:
 
         ax.fill_between(
             x=[0, x_max],  # From x=0 to the current right limit
-            y1=-np.log10(0.05),    # Lower boundary
+            y1=-np.log10(pval),    # Lower boundary
             y2=y_max,      # Current upper limit
             color='dimgray',     # Light gray color
             alpha=0.3,             # Transparency (adjust as needed)

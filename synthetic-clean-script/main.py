@@ -11,7 +11,7 @@ from utils_estimate import *
 parser = argparse.ArgumentParser()
 parser.add_argument('--d', nargs="+", default=6, type=int)
 parser.add_argument('--n_val', default=1000, type=int)
-parser.add_argument('--n_rct', default=1000, type=int)
+parser.add_argument('--n_rct', default=5000, type=int)
 parser.add_argument('--n_obs', default=50000, type=int)
 parser.add_argument('--num_trials', default=200, type=int)
 parser.add_argument('--seed', default=99, type=int)
@@ -63,7 +63,7 @@ for d in ds:
             cov_res.loc[k, key + "_r"] = r
             cov_res.loc[k, key + "_p"] = p
 
-    save_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f"/results/{args.bias_type}/d{d}")
+    save_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f"/results_ntrain-{args.n_rct}_nval-{args.n_val}/{args.bias_type}/d{d}")
     save_dir.mkdir(parents=True, exist_ok=True)
 
     cov_res.to_csv(os.path.join(save_dir, 'results.csv'), index=False)    

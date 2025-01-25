@@ -9,8 +9,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--d', nargs="+", default=6, type=int)
 parser.add_argument('--bias_type', default="dummy_results", type=str)
-parser.add_argument('--n_val', default=1000, type=int)
-parser.add_argument('--n_rct', default=5000, type=int)
+parser.add_argument('--n_val', default=2000, type=int)
+parser.add_argument('--n_rct', default=50000, type=int)
 args = parser.parse_args()
 
 ds = args.d if isinstance(args.d, list) else [args.d]
@@ -22,14 +22,16 @@ for d in ds:
     save_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f"/results_ntrain-{args.n_rct}_nval-{args.n_val}/{args.bias_type}/d{d}")
     df = pd.read_csv(os.path.join(save_dir, 'results.csv')) 
 
-    cp = sns.color_palette("tab10")
-    fig, axs = plt.subplots(1, 3, figsize=(8,3)) 
+    # cp = sns.color_palette("tab10")
+    cp = ("#0f7ba2", "#dd5129", "#43b284")
+
+    fig, axs = plt.subplots(1, 3, figsize=(6,1.5)) 
     
     x_min, x_max = float('inf'), float('-inf')
     y_min, y_max = float('inf'), float('-inf')
 
     for idx, (key, plot_name) in enumerate(target_vars.items()):
-        axs[idx].set_xlabel(rf"$\rho (b1, {plot_name})$", fontsize=16)
+        # axs[idx].set_xlabel(rf"$\rho (b1, {plot_name})$", fontsize=10)
         axs[idx].axhline(y=-np.log10(pval), color='lightgray', linestyle='--', label=f'p = {pval}')
         axs[idx].axvline(x=0, color='lightgray', linestyle='--', label=f'p = {pval}')
         
@@ -39,7 +41,7 @@ for d in ds:
         axs[idx].scatter(hat_rho, log_p_val, color=cp[idx], s=1, alpha=0.5)
 
         percent = int(100 * len(df.query(f"{key}_r > 0 & {key}_p < {pval}")) / len(df))
-        axs[idx].text(0.6, 0.6, f"%{percent}", fontsize=12, ha='center', va='center', transform=axs[idx].transAxes)
+        axs[idx].text(0.8, 0.5, f"%{percent}", fontsize=10, ha='center', va='center', transform=axs[idx].transAxes)
 
         #  for plotting all four figures with the same x and y limits
         x0, x1 = axs[idx].get_xlim()
@@ -48,7 +50,7 @@ for d in ds:
         x_min, x_max = min(x_min, x0), max(x_max, x1)
         y_min, y_max = min(y_min, y0), max(y_max, y1)
 
-    axs[0].set_ylabel('-log10(p-value)', fontsize=16)
+    #axs[0].set_ylabel('-log10(p-value)', fontsize=10)
 
     for ax in axs.flat:
         ax.set_xlim(x_min, x_max)
@@ -59,12 +61,12 @@ for d in ds:
             y1=-np.log10(pval),    # Lower boundary
             y2=y_max,      # Current upper limit
             color='dimgray',     # Light gray color
-            alpha=0.3,             # Transparency (adjust as needed)
+            alpha=0.15,             # Transparency (adjust as needed)
             zorder=0              # Put it behind other plot elements
         )
 
     plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, 'plot.png'))
+    plt.savefig(os.path.join(save_dir, 'plot.svg'))
 
     #############################################################################################
 

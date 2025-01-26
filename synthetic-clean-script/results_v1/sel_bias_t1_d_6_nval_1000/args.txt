@@ -1,0 +1,15 @@
+{
+  "d": 6,
+  "n_val": 1000,
+  "n_rct": 20000,
+  "n_obs": 20000,
+  "num_trials": 100,
+  "seed": 99,
+  "res_dir": "sel_bias_t1",
+  "bias_S": true,
+  "bias_A": false,
+  "bias_Y0": false,
+  "bias_Y1": true,
+  "bias_trs": false,
+  "full_adj": false
+}

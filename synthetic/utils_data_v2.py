@@ -92,7 +92,6 @@ def make_preds(df, predictors, models):
     for key, model in models.items():
         df[f"hat_P({key}=1)"] = model.predict_proba(df[predictors])[:,-1]
         df[f"SE_{key}"] = (df.query(flt_str[key])[key] - df[f"hat_P({key}=1)"]) ** 2
-        # df[f"SE_{key}"] = (df.query("index==index")[key] - df[f"hat_P({key}=1)"]) ** 2
 
 def merge_df_val(df_rct, df_obs, predictors, pr_model, rct_models, obs_models):
     df = pd.concat([df_rct, df_obs]).reset_index(drop=True)
@@ -105,8 +104,8 @@ def merge_df_val(df_rct, df_obs, predictors, pr_model, rct_models, obs_models):
     df["mu_0_obs"] = obs_models["Y0"].predict_proba(df[predictors])[:,-1]
     df["mu_1_obs"] = obs_models["Y1"].predict_proba(df[predictors])[:,-1]
 
-    df["w1(X)"] = (df["mu_1_rct"] - df["mu_0_rct"]) - (df["mu_1_obs"] - df["mu_0_obs"])
-    df["abs(w1(X))"] = abs(df["w1(X)"])
+    df["b1(X)"] = (df["mu_1_rct"] - df["mu_0_rct"]) - (df["mu_1_obs"] - df["mu_0_obs"])
+    df["abs(b1(X))"] = abs(df["b1(X)"])
 
     return df
 
@@ -117,20 +116,14 @@ def covs_to_prob(row, covs, p):
 
     return p[int(group_index)]
 
-def sample_probs(d, pl_range, ph_range, key, value):
+
+def sample_probs(d, pl_range, ph_range, bias_flag):
     p = defaultdict()
-    for k in range(2 ** (d - 1)):
-        pl0, pl1 = unif(*pl_range), unif(*pl_range)
-        ph0, ph1 = unif(*ph_range), unif(*ph_range)
-
-        # p[2 * k] = choice([pl, ph])
-        # p[2 * k + 1] = choice([p[2 * k], ph + pl - p[2 * k]], p=[0.5, 0.5])
-
-        p[2 * k] = choice([pl0, ph0])
-        p[2 * k + 1] = choice([pl1, ph1])
+    for k in range(2 ** d):
+        p[k] = choice([unif(*pl_range), unif(*ph_range)])
 
     p = list(p.values())
-    if value != "biased":
+    if not bias_flag:
         p[1::2] = p[::2]
 
     return p
@@ -138,20 +131,21 @@ def sample_probs(d, pl_range, ph_range, key, value):
 def sample_all_probs(d, pl_range, ph_range, scenario):
     probs = defaultdict(list)
 
-    for key, value in scenario.items():
-        probs[key] = sample_probs(d, pl_range, ph_range, key, value)
+    for key, bias_flag in scenario.items():
+        probs[key] = sample_probs(d, pl_range, ph_range, bias_flag)
 
     return probs
 
-def init_df(n, d, d_meas, r, probs):
+
+def init_df(n, d, d_meas, r, probs, x_probs, u_probs):
     covs = [f"X{i + 1}" for i in range(d)]
     meas_covs = [f"X{i + 1}" for i in range(d_meas)]
+    
+    X_meas = choice([0, 1], size=(n,d_meas), p=x_probs[f"R={r}"])
+    U = choice([0, 1], size=(n,1), p=u_probs[f"R={r}"])
+    X = np.concatenate((X_meas, U), axis=1)
 
-    x_probs = {"r=1": [0.4, 0.6],
-               "r=0": [0.6, 0.4]}
-
-    X_rct = choice([0, 1], size=(n,d), p=x_probs[f"r={r}"])
-    df = pd.DataFrame({**{'R': r}, **{cov: X_rct[:,i] for i, cov in enumerate(covs)}})
+    df = pd.DataFrame({**{'R': r}, **{cov: X[:,i] for i, cov in enumerate(covs)}})
 
     for i, c in enumerate(list(itertools.product([0, 1], repeat=d_meas))):
         df[f"Xp{i + 1}"] = (df[meas_covs] == c).all(axis=1).astype(int)

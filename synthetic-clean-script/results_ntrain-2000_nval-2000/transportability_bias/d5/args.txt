@@ -1,0 +1,20 @@
+{
+  "d": [
+    5,
+    6,
+    7,
+    8
+  ],
+  "n_val": 2000,
+  "n_rct": 2000,
+  "n_obs": 50000,
+  "num_trials": 200,
+  "seed": 99,
+  "bias_S": false,
+  "bias_A": false,
+  "bias_Y0": false,
+  "bias_Y1": true,
+  "bias_trs": true,
+  "full_adj": false,
+  "bias_type": "transportability_bias"
+}

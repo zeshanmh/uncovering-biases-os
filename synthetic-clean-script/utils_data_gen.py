@@ -66,7 +66,27 @@ def sample_all_probs(d, pl_range, ph_range, scenario):
     return probs
 
 
-def init_df(n, d, d_meas, r, probs, x_probs, trs_bias):
+def apply_sel_bias_type2(row, probs): 
+    """ 
+    sya, Y = y, A = a
+    s00, s01, s10, s11 
+    0.1, 0.1, 0.1, 0.9
+    0.9, 0.9, 0.9, 0.1
+    0.1, 0.5, 0.5, 0.9
+    0.9, 0.5, 0.5, 0.1    
+    """
+    s00, s01, s10, s11 = probs
+    if row["A"] == 0 and row["Y0"] == 0:
+        return s00
+    elif row["A"] == 1 and row["Y1"] == 0:
+        return s01
+    elif row["A"] == 0 and row["Y0"] == 1:
+        return s10
+    elif row["A"] == 1 and row["Y1"] == 1:
+        return s11
+
+
+def init_df(n, d, d_meas, r, probs, x_probs, trs_bias, sel_bias_type2_probs):
     all_covs = [f"X{i + 1}" for i in range(d)]
     X_covs = [f"X{i + 1}" for i in range(d - 1)]
     meas_covs = [f"X{i + 1}" for i in range(d_meas)]
@@ -82,8 +102,15 @@ def init_df(n, d, d_meas, r, probs, x_probs, trs_bias):
         df[f"X{d}"] = df.apply(lambda row: binomial(1, row[f"P(X{d}=1)"]), axis=1)
 
     for key, prob in probs.items():
+        if len(sel_bias_type2_probs) > 0 and key == "S": 
+            continue
         df[f"P({key}=1)"] = df.apply(lambda row: covs_to_prob(row, all_covs, prob), axis=1)
         df[key] = df.apply(lambda row: binomial(1, row[f"P({key}=1)"]), axis=1)
+
+    if len(sel_bias_type2_probs) > 0: 
+        prob = probs["S"]
+        df[f"P(S=1)"] = df.apply(lambda row: apply_sel_bias_type2(row, sel_bias_type2_probs), axis=1)
+        df["S"]       = df.apply(lambda row: binomial(1, row[f"P(S=1)"]), axis=1)
 
     for i, c in enumerate(list(itertools.product([0, 1], repeat=d_meas))):
         df[f"Xp{i + 1}"] = (df[meas_covs] == c).all(axis=1).astype(int)

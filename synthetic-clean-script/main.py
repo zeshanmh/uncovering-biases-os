@@ -4,6 +4,7 @@ import argparse
 import os
 import json
 from pathlib import Path
+from tqdm import tqdm
 
 from utils_data_gen import *
 from utils_estimate import *
@@ -20,6 +21,8 @@ parser.add_argument('--bias_A', action="store_true")
 parser.add_argument('--bias_Y0', action="store_true")
 parser.add_argument('--bias_Y1', action="store_true")
 parser.add_argument('--bias_trs', action="store_true")
+parser.add_argument('--bias_sel_type2_probs', nargs=4, type=float, default=[],
+                    help="List of exactly 4 probabilities for the selection bias type 2 [s00, s01, s10, s11].")
 parser.add_argument('--full_adj', action="store_true")
 parser.add_argument('--bias_type', default="dummy_results", type=str)
 args = parser.parse_args()
@@ -40,18 +43,18 @@ for d in ds:
     predictors = [f"Xp{i + 1}" for i in range(2 ** d_meas)]
     cov_res = pd.DataFrame(columns=[key + suffix for key in res_keys for suffix in ["_r", "_p"]], index=np.arange(args.num_trials))
 
-    for k in range(args.num_trials):
+    for k in tqdm(range(args.num_trials)):
         obs_probs = sample_all_probs(d, pl_range, ph_range, bias_values)
         rct_probs = {"Y0": obs_probs["Y0"], "Y1": obs_probs["Y1"],  "A": (2 ** d) * [0.5], "S": (2 ** d) * [0.95]}
 
-        df_rct = init_df(args.n_rct, d, d_meas, 1, rct_probs, pX, False)
-        df_obs = init_df(args.n_obs, d, d_meas, 0, obs_probs, pX, args.bias_trs)
+        df_rct = init_df(args.n_rct, d, d_meas, 1, rct_probs, pX, False, [])
+        df_obs = init_df(args.n_obs, d, d_meas, 0, obs_probs, pX, args.bias_trs, args.bias_sel_type2_probs)
 
         rct_models = fit_models(df_rct, predictors)
         obs_models = fit_models(df_obs, predictors)
 
-        df_rct_val = init_df(args.n_val * 20, d, d_meas, 1, rct_probs, pX, False)
-        df_obs_val = init_df(args.n_val * 20, d, d_meas, 0, obs_probs, pX, args.bias_trs)
+        df_rct_val = init_df(args.n_val * 20, d, d_meas, 1, rct_probs, pX, False, [])
+        df_obs_val = init_df(args.n_val * 20, d, d_meas, 0, obs_probs, pX, args.bias_trs, args.bias_sel_type2_probs)
 
         make_preds(df_rct_val, predictors, rct_models)
         make_preds(df_obs_val, predictors, obs_models)

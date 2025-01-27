@@ -9,8 +9,7 @@ from numpy.random import uniform as unif
 
 class DataModule():
     def __init__(self, ...):
-        w
-
+        pass
 
 def sample_bernoulli(row, covs, coefs=None, p=0.95):
     if coefs is not None:

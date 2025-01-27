@@ -4,10 +4,6 @@ from scipy import stats
 
 
 def pearsonr(df, col_x, col_y, n):
-    # if col_y != "SE_R":
-    #     df_new = df.query("R==0")[[col_x, col_y]].dropna()
-    # else:
-    #     df_new = df[[col_x, col_y]].dropna()
     if col_y == "SE_S":
         df_new = df.query("R==0")[[col_x, col_y]].dropna()
     if col_y == "SE_A":
@@ -16,6 +12,8 @@ def pearsonr(df, col_x, col_y, n):
         df_new = df.query("R==0 & S==1 & A==0")[[col_x, col_y]].dropna()
     if col_y == "SE_Y1":
         df_new = df.query("R==0 & S==1 & A==1")[[col_x, col_y]].dropna()
+    if col_y == "SE_R": 
+        df_new = df[[col_x, col_y]].dropna()
 
     df_new = df_new.iloc[:n, :]
 

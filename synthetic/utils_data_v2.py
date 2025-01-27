@@ -8,26 +8,83 @@ from numpy.random import choice
 from numpy.random import binomial
 from numpy.random import uniform as unif
 
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.model_selection import RandomizedSearchCV
 from collections import defaultdict
 
+class dummy_model:
+    def __init__(self): 
+        pass 
 
-def fit_model(df, predictors, target, filter_fit='index==index'):
-    model = LogisticRegression()
-    model.fit(df.query(filter_fit)[predictors], df.query(filter_fit)[target])
+    def fit(self):
+        pass 
 
+    def predict_proba(self, X): 
+        return np.ones((X.shape[0],2))
+
+    def predict(self, X): 
+        return np.ones(X.shape)
+
+def fit_model(df, predictors, target, filter_fit='index==index', model='LR'):
+    if model == 'LR': 
+        model = LogisticRegression(max_iter=1000)
+        model.fit(df.query(filter_fit)[predictors], df.query(filter_fit)[target])
+    elif model == 'RF': 
+        # model = RandomForestClassifier(random_state=42)
+        # param_dist = {
+        #     'n_estimators': [100, 500], 
+        #     'max_depth': [None, 10, 20],
+        #     # 'max_features': ['sqrt', 'log2'],
+        #     'min_samples_split': [2, 10]
+        # }
+        # random_search = RandomizedSearchCV(
+        #     estimator=model,
+        #     param_distributions=param_dist,
+        #     n_iter=5,
+        #     cv=5,
+        #     scoring='roc_auc',
+        #     random_state=42,
+        #     n_jobs=-1
+        # )
+        # random_search.fit(df.query(filter_fit)[predictors], df.query(filter_fit)[target])
+        # model = random_search.best_estimator_
+        model = RandomForestClassifier(
+            n_estimators=100, 
+            max_depth=10, 
+            min_samples_split=2,
+            random_state=42
+        )
+        model.fit(df.query(filter_fit)[predictors], df.query(filter_fit)[target])
+    elif model == 'GB':
+        model = GradientBoostingClassifier(
+            n_estimators=500,
+            max_depth=20,
+            min_samples_split=2,
+            random_state=42
+        )
+        model.fit(df.query(filter_fit)[predictors], df.query(filter_fit)[target])
+        
     return model
 
-
-def fit_models(df, predictors):
+def fit_models(df, predictors, is_rct=False, model="LR"):
     flt_str = {"S": "index==index", "A": "S==1", "Y0": "S==1 & A==0", "Y1": "S==1 & A==1"}
     models = {}
 
     for key in flt_str:
-        models[key] = fit_model(df, predictors, key, flt_str[key]) 
+        if is_rct and key == "S": 
+            DM = dummy_model()
+            models[key] = DM
+        else: 
+            if model == "LR": 
+                models[key] = fit_model(df, predictors, key, flt_str[key], model=model)
+            elif model == "RF": 
+                if key == "Y1" or key == "Y0":
+                    models[key] = fit_model(df, predictors, key, flt_str[key], model="RF")
+                else: 
+                    models[key] = fit_model(df, predictors, key, flt_str[key], model="LR")
 
     return models
-
 
 def make_preds(df, predictors, models):
     flt_str = {"S": "index==index", "A": "S==1", "Y0": "S==1 & A==0", "Y1": "S==1 & A==1"}
@@ -35,7 +92,6 @@ def make_preds(df, predictors, models):
     for key, model in models.items():
         df[f"hat_P({key}=1)"] = model.predict_proba(df[predictors])[:,-1]
         df[f"SE_{key}"] = (df.query(flt_str[key])[key] - df[f"hat_P({key}=1)"]) ** 2
-
 
 def merge_df_val(df_rct, df_obs, predictors, pr_model, rct_models, obs_models):
     df = pd.concat([df_rct, df_obs]).reset_index(drop=True)
@@ -52,7 +108,6 @@ def merge_df_val(df_rct, df_obs, predictors, pr_model, rct_models, obs_models):
     df["abs(b1(X))"] = abs(df["b1(X)"])
 
     return df
-
 
 def covs_to_prob(row, covs, p):
     group_index = 0
@@ -72,7 +127,6 @@ def sample_probs(d, pl_range, ph_range, bias_flag):
         p[1::2] = p[::2]
 
     return p
-
 
 def sample_all_probs(d, pl_range, ph_range, scenario):
     probs = defaultdict(list)

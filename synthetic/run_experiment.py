@@ -20,15 +20,18 @@ def run_single_experiment(bias_setup, seed, n_rct, n_obs):
     # Calculate contrasts
     psi_estimator = PsiEstimator()
     psi_estimator.calc_contrasts(df_merged)
+    
+    df_merged.loc[df_merged["X1"] == 1, "w(X)"] = df_merged.query("X1 == 1")["psi"].mean()
+    df_merged.loc[df_merged["X1"] == -1, "w(X)"] = df_merged.query("X1 == -1")["psi"].mean()
     df_obs = df_merged.query("R==0")
     
     # Compute covariances for different X1 values
     estimator = CovarianceEstimator()
     results = {}
-    results["X1_all"] = estimator.compute_covariance_SE(df_obs)
+    results["X1_all"] = estimator.compute_covariance_SE(df_obs, use_witness_function=True)
     for x1_val in [-1, 1]:
         df_x1 = df_obs.query(f"X1 == {x1_val}")
-        results[f"X1_{x1_val}"] = estimator.compute_covariance_SE(df_x1)
+        results[f"X1_{x1_val}"] = estimator.compute_covariance_SE(df_x1, use_witness_function=True)
     
     return results
 

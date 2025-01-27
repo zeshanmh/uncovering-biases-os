@@ -4,6 +4,7 @@ class CovarianceEstimator:
     def __init__(self): 
         self.N  = None
         self.df = None  
+        self.use_witness_function = False
     
     def _compute_term2_helper(self, x1, x2, average=True):
         cross_products = x1[:,None] * x2[None,:]
@@ -18,13 +19,20 @@ class CovarianceEstimator:
         trt_df     = self.df.query("A==1")
         control_df = self.df.query("A==0")
         
-        term1 = ((control_df["SE_Y0"]*np.abs(control_df["psi"])).sum() + 
-                (trt_df["SE_Y1"]*np.abs(trt_df["psi"])).sum())
+        if self.use_witness_function:
+            trt_w = trt_df["w(X)"].values
+            control_w = control_df["w(X)"].values
+        else:
+            trt_w = np.abs(trt_df["psi"].values)
+            control_w = np.abs(control_df["psi"].values)
+
+        term1 = ((control_df["SE_Y0"]*control_w).sum() + 
+                (trt_df["SE_Y1"]*trt_w).sum())
         term1 = term1 / N 
         
         # term 2
-        c1 = control_df["SE_Y0"].values; c2 = np.abs(control_df["psi"]).values
-        t1 = trt_df["SE_Y1"].values; t2 = np.abs(trt_df["psi"]).values
+        c1 = control_df["SE_Y0"].values; c2 = control_w
+        t1 = trt_df["SE_Y1"].values; t2 = trt_w
 
         # Compute cross products for control group
         c_cross = self._compute_term2_helper(c1, c2, average=False)
@@ -37,24 +45,36 @@ class CovarianceEstimator:
 
     def _compute_covariance_SE_treatment(self):
         N = self.N 
-        term1 = (self.df["SE_A"]*np.abs(self.df["psi"])).mean()
+
+        if self.use_witness_function:
+            w = self.df["w(X)"].values
+        else: 
+            w = np.abs(self.df["psi"].values)
+
+        term1 = (self.df["SE_A"]*w).mean()
         # term 2 
-        x1 = self.df["SE_A"].values; x2 = np.abs(self.df["psi"]).values 
+        x1 = self.df["SE_A"].values; x2 = w
         term2 = self._compute_term2_helper(x1, x2, average=True)
         # covariance 
         return (N / (N-1)) * (term1 - term2) 
 
     def _compute_covariance_SE_selection(self):
         N = self.N 
-        term1 = (self.df["SE_S"]*np.abs(self.df["psi"])).mean()
-        x1 = self.df["SE_S"].values; x2 = np.abs(self.df["psi"]).values
+        if self.use_witness_function:
+            w = self.df["w(X)"].values
+        else: 
+            w = np.abs(self.df["psi"].values)
+
+        term1 = (self.df["SE_S"]*w).mean()
+        x1 = self.df["SE_S"].values; x2 = w
         term2 = self._compute_term2_helper(x1, x2, average=True)
         return (N / (N-1)) * (term1 - term2)
 
-    def compute_covariance_SE(self, df):
+    def compute_covariance_SE(self, df, use_witness_function=False):
         # set shape and dataframe
         self.N  = df.shape[0]
         self.df = df
+        self.use_witness_function = use_witness_function
 
         # compute covariance signals 
         covariance_signals = {}

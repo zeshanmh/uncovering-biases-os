@@ -42,7 +42,7 @@ parser$add_argument("--output_file", type="character", help="Name of output file
 
 args <- parser$parse_args()
 
-path <- "/Users/zeshanmh/Documents/research/benchmarking-OS/whi"
+path <- "/Users//Documents/research/benchmarking-OS/whi"
 args$biased_file <- file.path(path, "results/DROPSOME_biased_includecensored_False_STROKE_RF.csv")
 args$unbiased_file <- file.path(path, "results/DROPSOME_unbiased_includecensored_False_STROKE_RF.csv")
 args$manual_biased_file <- file.path(path, "results/DROPSOME_manually_biased_includecensored_False_STROKE_RF.csv")

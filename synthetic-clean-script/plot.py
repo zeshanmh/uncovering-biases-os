@@ -18,7 +18,7 @@ target_vars = {"SE_S": "S", "SE_A": "A", "SE_Y1": "Y"}
 
 pval = 0.01
 
-sb_type2_flag = "sel_bias_type2" in args.bias_type
+sb_type2_flag = "sel_bias_type2" in args.bias_type or "selbias2" in args.bias_type
 
 for d in ds:
     save_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f"/results_ntrain-{args.n_rct}_nval-{args.n_val}/{args.bias_type}/d{d}")
@@ -42,10 +42,20 @@ for d in ds:
         log_p_val = np.clip(-np.log10(hat_p), a_min=None, a_max=5)
         axs[idx].scatter(hat_rho, log_p_val, color=cp[idx], s=1, alpha=0.5)
 
-        if sb_type2_flag and "Y" not in key:
-            percent = int(100 * len(df.query(f"({key}_r != 0 & {key}_p < {pval})")) / len(df))
+        if sb_type2_flag and "SE_S" in key:
+            percent = int(100 * len(df.query(f"({key}_r > 0 & {key}_p < {pval})")) / len(df))
+            df_select = df.query(f"({key}_r > 0)")
+        elif sb_type2_flag and "SE_A" in key: 
+            percent = int(100 * len(df.query(f"({key}_r < 0 & {key}_p < {pval})")) / len(df))
+            df_select = df.query(f"({key}_r < 0)")
         else: 
             percent = int(100 * len(df.query(f"{key}_r > 0 & {key}_p < {pval}")) / len(df))
+            df_select = df.query(f"({key}_r > 0)")
+        average_signal = df_select[f"{key}_r"].mean()
+        std_dev        = df_select[f"{key}_r"].std()
+        print(f"signal for {key}_r: {average_signal} +/- {std_dev}")
+        # print(f"signal for {key}_r: {df[f"{key}_r"].mean()} +/- {df[f"{key}_r"].std()}")
+
         axs[idx].text(0.8, 0.5, f"%{percent}", fontsize=10, ha='center', va='center', transform=axs[idx].transAxes)
 
         #  for plotting all four figures with the same x and y limits
@@ -62,10 +72,19 @@ for d in ds:
         ax.set_ylim(y_min, y_max)
 
         lower_bound = 0
-        if sb_type2_flag and i != len(axs.flat)-1: 
+        upper_bound = x_max
+        if sb_type2_flag and i == 0: 
+            # lower_bound = x_min
+            # upper_bound = 0
+            lower_bound = 0
+            upper_bound = x_max
+        elif sb_type2_flag and i == 1: 
             lower_bound = x_min
+            upper_bound = 0
+            # lower_bound = 0
+            # upper_bound = x_max
         ax.fill_between(
-            x=[lower_bound, x_max],  # From x=0 to the current right limit
+            x=[lower_bound, upper_bound],  # From x=0 to the current right limit
             y1=-np.log10(pval),    # Lower boundary
             y2=y_max,      # Current upper limit
             color='dimgray',     # Light gray color
@@ -75,7 +94,7 @@ for d in ds:
         
 
     plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, 'plot.svg'))
+    plt.savefig(os.path.join(save_dir, 'plot_v2.svg'))
 
     #############################################################################################
 

@@ -21,7 +21,7 @@ To run a synthetic experiment, run the following command:\
 To plot a figure similar to the ones in the paper, run:\
 ```python plot.py --bias_type "selection_bias" --d 5 6 7 8 --n_rct 2000 --n_val 2000```
 
-Ensure that the bias_type flag as well as the n_rct and n_val values are the same in both commands. 
+Ensure that the ```bias_type``` flag as well as the ```n_rct``` and ```n_val``` values are the same in both commands. 
 
 ## WHI Experiments
 Run the following to conduct a WHI experiment:\
